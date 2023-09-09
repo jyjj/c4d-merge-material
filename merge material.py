@@ -20,21 +20,26 @@ def main():
         main_material = mat_list[0]
 
         for mat in mat_list[1:]:
-            replace_material(main_material, mat)
+            replace_material_in_hierarchy(doc.GetFirstObject(), main_material, mat)
             doc.AddUndo(c4d.UNDOTYPE_DELETE, mat)  # アンドゥ操作を追加
             mat.Remove()
 
     doc.EndUndo()  # アンドゥの終了
     c4d.EventAdd()  # ビューポートの更新
 
-def replace_material(new_material, old_material):
-    for obj in doc.GetObjects():
+def replace_material_in_hierarchy(obj, new_material, old_material):
+    while obj:
         tags = obj.GetTags()
         for tag in tags:
-            if tag.GetType() == c4d.Ttexture:
-                if tag[c4d.TEXTURETAG_MATERIAL] == old_material:
-                    tag[c4d.TEXTURETAG_MATERIAL] = new_material
-                    doc.AddUndo(c4d.UNDOTYPE_CHANGE, tag)  # アンドゥ操作を追加
+            if tag.GetType() == c4d.Ttexture and tag[c4d.TEXTURETAG_MATERIAL] == old_material:
+                tag[c4d.TEXTURETAG_MATERIAL] = new_material
+                doc.AddUndo(c4d.UNDOTYPE_CHANGE, tag)  # アンドゥ操作を追加
+
+        # 子要素に対する再帰呼び出し
+        if obj.GetDown():
+            replace_material_in_hierarchy(obj.GetDown(), new_material, old_material)
+
+        obj = obj.GetNext()
 
 if __name__ == '__main__':
     main()
